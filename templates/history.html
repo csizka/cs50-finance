@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    History
+{% endblock %}
+
+{% block main %}
+
+      <h2> Transaction History</h2>
+
+      <br>
+      <h3>Shares</h3>
+      <br>
+
+      <table class="table">
+        <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col">Bought / Sold</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Price / Share</th>
+            <th scope="col">Date and Time</th>
+            <th scope="col">#</th>
+        </tr>
+
+          {% for purchase in purchases%}
+            <tr>
+              <th scope = "row" class="{{purchase.type}}"> {{purchase.symbol}}</th>
+              <td class={{purchase.type}}> {{purchase.type}}</td>
+              <td class={{purchase.type}}> {{purchase.amount}}</td>
+              <td class={{purchase.type}}> {{purchase.price | usd}}</td>
+              <td class={{purchase.type}}> {{purchase.time }}</td>
+              <td class={{purchase.type}}> {{purchase.count}}</td>
+            </tr>
+          {% endfor %}
+
+      </table >
+
+      <br>
+      <h3>Cash</h3>
+      <br>
+
+      <table class="table">
+        <tr>
+          <th scope="col">Deposit / Withdrawal</th>
+          <th scope="col">Amount</th>
+          <th scope="col">Date and Time</th>
+          <th scope="col">Total Deposited Amount to Date</th>
+          <th scope="col">#</th>
+        </tr>
+
+          {% for transaction in transactions %}
+              <tr>
+                <th scope = "row" class={{transaction.type}}> {{transaction.type}}</th>
+                <td class={{transaction.type}}> {{transaction.amount | usd}}</td>
+                <td class={{transaction.type}}> {{transaction.time}}</td>
+                <td class={{transaction.type}}> {{transaction.total}}</td>
+                <td class={{transaction.type}}> {{transaction.count}}</td>
+              </tr>
+          {% endfor %}
+
+      </table>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Homepage
+{% endblock %}
+
+{% block main %}
+
+      <h2> Current Assets</h2>
+      <br>
+      <h3> Portfolio Worth: {{ total_amount | usd}} </h3>
+      <p></p>
+      <table class="table">
+        <tr>
+            <th scope="col">Cash Budget</th>
+            <th scope="col">Total Shares Worth</th>
+        </tr>
+        <tr>
+          <td>{{cash | usd }}</td>
+          <td>{{share | usd }}</td>
+        </tr>
+      </table>
+      <br>
+      <h3>Shares:</h3>
+      <br>
+      <table class="table">
+        <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col"># Shares Owned</th>
+            <th scope="col">Current Price / Stock</th>
+            <th scope="col">Total Worth of Holding</th>
+        </tr>
+
+          {% for stock in stocks%}
+            <tr>
+              <th scope="row">{{stock.symbol}}</th>
+              <td> {{stock.amount}}</td>
+              <td> {{stock.price | usd}}</td>
+              <td> {{stock.worth | usd}}</td>
+            </tr>
+          {% endfor %}
+
+      </table>
+      <br>
+      <h3>Calculated Current Gain</h3>
+      <h6>Current portfolio worth - deposited cash + withdrawn cash</h6>
+      <h4> {{gain | usd}}</h4>
+
+{% endblock %}

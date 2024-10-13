@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Withdraw
+{% endblock %}
+
+{% block main %}
+    <h2> Withdraw $ from your account</h2>
+    <p></p>
+    <h4>Current balance: {{budget | usd }}</h4>
+    <br>
+  <form action="/withdraw" method="post">
+      <div class="mb-3">
+          <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="withdraw" placeholder="Amount in USD" type="number" min="1" max={{budget}}>
+      </div>
+      <button class="btn btn-primary" type="submit">Withdraw</button>
+  </form>
+
+{% endblock %}

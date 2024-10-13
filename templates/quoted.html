@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+  <table class="table">
+    <tr>
+      <th scope="col">Symbol</th>
+      <th scope="col">Price</th>
+    </tr>
+    <tr>
+      <td>{{symbol}}</td>
+      <td>{{price | usd}}</td>
+    </tr>
+  </table>
+
+  <br>
+  <h2> New search </h2>
+  <p></p>
+  <form action="/quote" method="post">
+    <div class="mb-3">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="symbol" placeholder="Symbol" type="text">
+    </div>
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+
+{% endblock %}
