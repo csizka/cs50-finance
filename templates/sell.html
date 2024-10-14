@@ -14,7 +14,7 @@
 
           {% for stock in stocks %}
 
-            <option value = {{stock.symbol}}> {{stock.symbol}}</option>
+            <option value = {{stock.symbol}}> {{stock.symbol}} - shares owned: {{stock.amount}}</option>
 
           {% endfor %}
 

@@ -6,7 +6,7 @@ from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, lookup, usd, execute_select
+from helpers import apology, login_required, lookup, usd, execute_select, get_userinfo
 
 # Configure application
 app = Flask(__name__)
@@ -35,17 +35,9 @@ def after_request(response):
 def index():
     """Show portfolio of stocks"""
     user_id = session["user_id"]
-
-    user = execute_select(db, """
-                            SELECT *
-                            FROM users
-                            WHERE id = ?
-    """, [user_id])
-
-    if len(user) != 1:
-        session.clear()
-        return redirect("/login")
+    user = get_userinfo(db, user_id)
     cash = user[0]["cash"]
+    username = user[0]["username"]
     total_worth = cash
     shares = execute_select(db, """
                          SELECT symbol, amount
@@ -82,48 +74,46 @@ def index():
     deposit = deposits[0]["sum"]
     gain = total_worth - deposit
 
-    return render_template("index.html", total_amount=total_worth, stocks=portfolio, cash=cash, share=total_worth - cash, gain=gain)
+    return render_template("index.html", total_amount=total_worth, stocks=portfolio, cash=cash, share=total_worth - cash, gain=gain, username=username)
 
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
     session["action"] = None
+    user_id = session["user_id"]
+    user = get_userinfo(db, user_id)
+    username = user[0]["username"]
+
     if request.method == "POST":
 
         if not request.form.get("symbol"):
-            return apology("must provide symbol", 400)
+            return apology("must provide symbol", username)
 
         symbol = request.form.get("symbol").upper()
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", 400)
+            return apology("non-existant symbol", username)
 
         if not request.form.get("shares"):
-            return apology("must provide number of shares to buy", 400)
+            return apology("must provide number of shares to buy", username)
 
         share = request.form.get("shares")
 
         try:
             share = int(share)
         except ValueError:
-            return apology("must provide number of shares to buy in digits", 400)
+            return apology("must provide number of shares to buy in digits", username)
 
         if share <= 0:
-            return apology("must provide a positive number of shares to buy", 400)
+            return apology("must provide a positive number of shares to buy", username)
 
-        user_id = session["user_id"]
         stock_price = lookup(symbol)["price"]
         full_price = stock_price * share
-        person = execute_select(db, "SELECT * FROM users WHERE id = ?", [user_id])
-
-        if len(person) != 1:
-            return apology("unexpected error", 400)
-
-        budget = person[0]["cash"]
+        budget = user[0]["cash"]
 
         if budget < full_price:
-            return apology("not enough funds", 400)
+            return apology("not enough funds", username)
 
         remaining_budget = budget - full_price
 
@@ -151,7 +141,7 @@ def buy():
         return redirect("/")
 
     else:
-        return render_template("buy.html")
+        return render_template("buy.html", username=username)
 
 
 @app.route("/history")
@@ -160,14 +150,8 @@ def history():
     """Show history of transactions"""
     session["action"] = None
     user_id = session["user_id"]
-    user = execute_select(db, """
-                            SELECT *
-                            FROM users
-                            WHERE id = ?
-    """, [user_id])
-    if len(user) != 1:
-        session.clear()
-        return redirect("/login")
+    user = get_userinfo(db, user_id)
+    username = user[0]["username"]
 
     purchases = execute_select(db, """
                          SELECT
@@ -198,7 +182,7 @@ def history():
                          ORDER BY time DESC
     """, [user_id])
 
-    return render_template("history.html", purchases=purchases, transactions=transactions)
+    return render_template("history.html", purchases=purchases, transactions=transactions, username=username)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -307,23 +291,29 @@ def logout():
 def quote():
     """Get stock quote."""
     session["action"] = None
+
+    user_id = session["user_id"]
+    user = get_userinfo(db, user_id)
+
+    username = user[0]["username"]
+
     if request.method == "POST":
 
         if not request.form.get("symbol"):
-            return apology("must provide symbol", 400)
+            return apology("must provide symbol", username)
 
         symbol = request.form.get("symbol")
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", 400)
+            return apology("non-existant symbol", username)
 
         price = lookup(symbol)["price"]
         symbol = symbol.upper()
 
-        return render_template("quoted.html", price=price, symbol=symbol)
+        return render_template("quoted.html", price=price, symbol=symbol, username=username)
 
     else:
-        return render_template("quote.html")
+        return render_template("quote.html", username=username)
 
 
 @app.route("/sell", methods=["GET", "POST"])
@@ -332,6 +322,9 @@ def sell():
     """Sell shares of stock"""
     session["action"] = None
     user_id = session["user_id"]
+    user = get_userinfo(db, user_id)
+    username = user[0]["username"]
+
     stocks = execute_select(db, """
         SELECT symbol, amount
         FROM stock_balance sb
@@ -343,25 +336,25 @@ def sell():
 
     if request.method == "POST":
         if not request.form.get("symbol"):
-            return apology("must provide symbol", 400)
+            return apology("must provide symbol", username)
 
         symbol = request.form.get("symbol").upper()
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", 400)
+            return apology("non-existant symbol", username)
 
         if not request.form.get("shares"):
-            return apology("must provide number of shares to sell", 400)
+            return apology("must provide number of shares to sell", username)
 
         share_to_sell = request.form.get("shares")
 
         try:
             share_to_sell = int(share_to_sell)
         except ValueError:
-            return apology("must provide number of shares to sell in digits", 400)
+            return apology("must provide number of shares to sell in digits", username)
 
         if share_to_sell <= 0:
-            return apology("must provide a positive number of shares to sell", 400)
+            return apology("must provide a positive number of shares to sell", username)
 
         balance = execute_select(db, """
             SELECT symbol_id, amount
@@ -372,13 +365,13 @@ def sell():
             AND symbol = ?""", [user_id, symbol])
 
         if len(balance) != 1:
-            return apology("unexpected error", 400)
+            return apology("unexpected error", username)
 
         budget = balance[0]["amount"]
         symbol_id = balance[0]["symbol_id"]
 
         if budget < share_to_sell:
-            return apology("not enough stocks", 400)
+            return apology("not enough stocks", username)
 
         remaining_stocks = budget - share_to_sell
         stock_price = lookup(symbol)["price"]
@@ -396,38 +389,38 @@ def sell():
         return redirect("/")
 
     else:
-        return render_template("sell.html", stocks=stocks)
+        return render_template("sell.html", stocks=stocks, username=username)
 
 
 @app.route("/withdraw", methods=["GET", "POST"])
 @login_required
 def withdraw():
     session["action"] = None
+    user_id = session["user_id"]
+    user = get_userinfo(db, user_id)
+    username = user[0]["username"]
     if request.method == "POST":
 
         if not request.form.get("withdraw"):
-            return apology("must provide amount", 400)
+            return apology("must provide amount", username)
 
         amount = request.form.get("withdraw")
 
         try:
             amount = int(amount)
         except ValueError:
-            return apology("must provide number as amount to withdraw", 400)
+            return apology("must provide number as amount to withdraw", username)
 
         if amount <= 0:
-            return apology("must provide a positive number as amount to withdraw", 400)
+            return apology("must provide a positive number as amount to withdraw", username)
 
         user_id = session["user_id"]
-        person = execute_select(db, "SELECT * FROM users WHERE id = ?", [user_id])
+        user = get_userinfo(db, user_id)
 
-        if len(person) != 1:
-            return apology("unexpected error", 400)
-
-        budget = person[0]["cash"]
+        budget = user[0]["cash"]
 
         if budget < amount:
-            return apology("not enough funds", 400)
+            return apology("not enough funds", username)
 
         remaining_budget = budget - amount
 
@@ -440,44 +433,39 @@ def withdraw():
         return redirect("/")
 
     else:
-        user_id = session["user_id"]
-        person = execute_select(db, "SELECT * FROM users WHERE id = ?", [user_id])
+        budget = user[0]["cash"]
 
-        if len(person) != 1:
-            return apology("unexpected error", 400)
-
-        budget = person[0]["cash"]
-        return render_template("withdraw.html", budget=budget)
+        return render_template("withdraw.html", budget=budget, username=username)
 
 
 @app.route("/deposit", methods=["GET", "POST"])
 @login_required
 def deposit():
     session["action"] = None
+    user_id = session["user_id"]
+    user = get_userinfo(db, user_id)
+    username = user[0]["username"]
+    budget = user[0]["cash"]
+    
     if request.method == "POST":
 
         if not request.form.get("deposit"):
-            return apology("must provide amount", 400)
+            return apology("must provide amount", username)
 
         amount = request.form.get("deposit")
 
         try:
             amount = int(amount)
         except ValueError:
-            return apology("must provide a number as amount to deposit", 400)
+            return apology("must provide a number as amount to deposit", username)
 
         if amount <= 0:
-            return apology("must provide a positive number as amount to deposit", 400)
-
-        user_id = session["user_id"]
-        person = execute_select(db, "SELECT * FROM users WHERE id = ?", [user_id])
-
-        if len(person) != 1:
-            return apology("unexpected error", 400)
-
-        budget = person[0]["cash"]
+            return apology("must provide a positive number as the amount to deposit", username)
 
         new_budget = budget + amount
+
+        if new_budget > 9223372036854775807:
+            return apology("budget exceeded", username)
 
         db.execute("UPDATE users SET cash = ? WHERE id = ? ", [new_budget, user_id])
         db.execute("INSERT INTO cash_transactions (user_id, amount) VALUES (?,?)", [user_id, amount])
@@ -488,11 +476,4 @@ def deposit():
         return redirect("/")
 
     else:
-        user_id = session["user_id"]
-        person = execute_select(db, "SELECT * FROM users WHERE id = ?", [user_id])
-
-        if len(person) != 1:
-            return apology("unexpected error", 400)
-
-        budget = person[0]["cash"]
-        return render_template("deposit.html", budget=budget)
+        return render_template("deposit.html", budget=budget, username=username)

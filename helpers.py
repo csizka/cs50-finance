@@ -10,7 +10,7 @@ from flask import redirect, render_template, request, session
 from functools import wraps
 
 
-def apology(message, code=400):
+def apology(message, username, code=400):
     """Render message as an apology to user."""
 
     def escape(s):
@@ -32,7 +32,7 @@ def apology(message, code=400):
             s = s.replace(old, new)
         return s
 
-    return render_template("apology.html", top=code, bottom=escape(message)), code
+    return render_template("apology.html", top=code, bottom=escape(message), username=username), code
 
 
 def login_required(f):
@@ -66,7 +66,6 @@ def lookup(symbol):
         f"&period2={int(end.timestamp())}"
         f"&interval=1d&events=history&includeAdjustedClose=true"
     )
-    print(url)
 
     # Query API
     try:
@@ -90,16 +89,20 @@ def usd(value):
 
 "https://query1.finance.yahoo.com/v7/finance/download/NFLX?period1=1723413600&period2=1723795612&interval=1d&events=history&includeAdjustedClose=true"
 
-def execute_select(db, statement):
-    execute_res = db.execute(statement)
-    col_names = [ col_desc[0] for col_desc in list(execute_res.description) ]
-    records = execute_res.fetchall()
-    res = [ dict(zip(col_names, record)) for record in records ]
-    return res
-
-def execute_select(db: sqlite3.Connection, statement: str, data: list[any]):
+def execute_select(db: sqlite3.Connection, statement: str, data: list[any] = []):
     execute_res = db.execute(statement, data)
     col_names = [ col_desc[0] for col_desc in list(execute_res.description) ]
     records = execute_res.fetchall()
     res = [ dict(zip(col_names, record)) for record in records ]
     return res
+
+def get_userinfo(db, user_id):
+    user = execute_select(db, """
+                            SELECT *
+                            FROM users
+                            WHERE id = ?
+    """, [user_id])
+    if len(user) != 1:
+        session.clear()
+        return redirect("/login")
+    return user
