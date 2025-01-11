@@ -93,7 +93,7 @@ def buy():
         symbol = request.form.get("symbol").upper()
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", username)
+            return apology("non-existent symbol", username)
 
         if not request.form.get("shares"):
             return apology("must provide number of shares to buy", username)
@@ -305,7 +305,7 @@ def quote():
         symbol = request.form.get("symbol")
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", username)
+            return apology("non-existent symbol", username)
 
         price = lookup(symbol)["price"]
         symbol = symbol.upper()
@@ -341,7 +341,7 @@ def sell():
         symbol = request.form.get("symbol").upper()
 
         if lookup(symbol) == None:
-            return apology("non-existant symbol", username)
+            return apology("non-existent symbol", username)
 
         if not request.form.get("shares"):
             return apology("must provide number of shares to sell", username)
